@@ -1,5 +1,12 @@
 import string 
 import random
+import base64
+def encrypt_password(password):
+    return base64.b64encode(password.encode()).decode()
+
+def decrypt_password(encoded):
+    return base64.b64decode(encoded.encode()).decode()
+
 def show_menu():
     print("------ PASSWORD MANAGER ------")
     print("1. Add Password")
@@ -37,7 +44,7 @@ def login():
     except FileNotFoundError:
         print("Master password file missing!")
         return False
-    attempt=0
+    attempt=3
     while attempt>0:
         entered=input("enter the master password")
         if master==entered:
@@ -77,23 +84,18 @@ def add_password():
     if check == 0:
       print("Account Already Exist")
       return
-
     choice = input("Generate password automatically? (y/n): ").lower()
     if choice == "y":
-      password = password_generator()
-      if password is None:
-        print("Password Not Generated\n")
-        while password is None:
-           password = password_generator()
-
-      else:
-        password = input("Enter the password: ")
-
+        password = password_generator()
+        if password is None:
+            print("Password not generated.\n")
+            return
+    else:
+        password = input("Enter password: ")
+    encrypted = encrypt_password(password)   
     with open("password.txt", "a") as file:
-      file.write(f"{account} | {password}\n")
-
+        file.write(f"{account} | {encrypted}\n")
     print("Password Added Successfully!\n")
-
 
 def view_accounts():
     try:
@@ -111,53 +113,43 @@ def view_accounts():
         print("No file found.\n")
 
 def search_password():
-    searched = input("Enter the account name for password: ").lower()
+    searched = input("Enter the account name: ").lower()
     found = False
     try:
         with open("password.txt", "r") as file:
             lines = file.readlines()
-
-        if not lines:
-            print("No account found.\n")
-            return
-
         for line in lines:
-            account, password = line.split("|")
+            account, encrypted = line.split("|")
             account = account.strip()
-            password = password.strip()
+            encrypted = encrypted.strip()
             if searched == account:
-                masked = "*" * len(password)
+                decrypted = decrypt_password(encrypted)
+                masked = "*" * len(decrypted)
                 print(f"Password for {account}: {masked}")
                 found = True
                 break
-
         if not found:
-            print("No account found")
-
+            print("Account not found.\n")
     except FileNotFoundError:
         print("No file found.\n")
 
 def view_password():
     searched = input("Enter account name: ").lower()
     found = False
-
     try:
         with open("password.txt", "r") as file:
             lines = file.readlines()
-
         for line in lines:
-            account, password = line.split("|")
+            account, encrypted = line.split("|")
             account = account.strip()
-            password = password.strip()
-
+            encrypted = encrypted.strip()
             if searched == account:
-                print(f"Password for {account}: {password}")
+                decrypted = decrypt_password(encrypted)
+                print(f"Password for {account}: {decrypted}")
                 found = True
                 break
-
         if not found:
-            print("No account found.")
-
+            print("No account found.\n")
     except FileNotFoundError:
         print("No file found.\n")
 
@@ -174,7 +166,8 @@ def update_password():
             account = account.strip()
 
             if searched == account:
-                lines[i] = f"{account} | {newpassword}\n"
+                encrypted=encrypt_password(newpassword)
+                lines[i] = f"{account} | {encrypted}\n"
                 found = True
                 break
 
